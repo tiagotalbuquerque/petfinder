@@ -210,18 +210,67 @@ function App() {
 
   const handleMapClick = ({ lat, lng }) => {
     setPendingCoords({ lat, lng });
+    closeAllModals();
     setAskType(true);
   };
 
   const chooseMissing = () => {
-    setAskType(false);
+    closeAllModals();
     setShowReportForm(true);
   };
 
   const chooseFound = () => {
-    setAskType(false);
+    closeAllModals();
     setShowFoundReportForm(true);
   };
+
+  // Ensure only one modal is open at a time
+  const closeAllModals = () => {
+    setShowReportForm(false);
+    setShowFoundReportForm(false);
+    setAskType(false);
+  };
+
+  const openMissingModal = (coords = null) => {
+    setPendingCoords(coords);
+    closeAllModals();
+    setShowReportForm(true);
+  };
+
+  const openFoundModal = (coords = null) => {
+    setPendingCoords(coords);
+    closeAllModals();
+    setShowFoundReportForm(true);
+  };
+
+  // Global ESC key handler to close search sidebar and any open report modals
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        let closedSomething = false;
+        if (searchOpen) {
+          setSearchOpen(false);
+          closedSomething = true;
+        }
+        if (askType || showReportForm || showFoundReportForm) {
+          // Close all modals and clear pending coords for consistency with Cancel actions
+          setShowReportForm(false);
+          setShowFoundReportForm(false);
+          setAskType(false);
+          setPendingCoords(null);
+          closedSomething = true;
+        }
+        if (closedSomething) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [searchOpen, askType, showReportForm, showFoundReportForm]);
 
   const performSearch = async () => {
     const q = query.trim();
@@ -342,14 +391,7 @@ function App() {
     <div className="app-container">
       <Map reports={reports} foundReports={foundReports} onMapClick={handleMapClick} searchMarker={searchMarker} focusPoint={focusPoint} />
 
-      {/* Search icon overlay (no input shown here) */}
-      <div className="search-overlay">
-        <div className="flex gap-2">
-          <Button onClick={() => setSearchOpen(true)} size="icon" aria-label="Open search" title="Open search">
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      {/* Search icon moved into buttons overlay */}
 
       {/* Collapsible sidebar */}
       <aside className={`sidebar ${searchOpen ? 'open' : ''}`}>
@@ -397,8 +439,12 @@ function App() {
         </div>
       )}
       <div className="buttons-overlay">
-        <Button onClick={() => { setPendingCoords(null); setShowReportForm(true); }}>Report Missing Pet</Button>
-        <Button variant="secondary" onClick={() => { setPendingCoords(null); setShowFoundReportForm(true); }}>Report Found Pet</Button>
+        <Button onClick={() => setSearchOpen(true)} className="bg-black text-white hover:bg-black/90" aria-label="Open search" title="Open search">
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
+        <Button variant="secondary" onClick={() => openMissingModal(null)}>Report Missing Pet</Button>
+        <Button variant="secondary" onClick={() => openFoundModal(null)}>Report Found Pet</Button>
       </div>
       
       {askType && (
@@ -414,8 +460,8 @@ function App() {
         </div>
       )}
 
-      {showReportForm && <ReportForm addReport={addReport} onCancel={() => { setShowReportForm(false); setPendingCoords(null); }} initialCoords={pendingCoords} />}
-      {showFoundReportForm && <FoundReportForm addFoundReport={addFoundReport} onCancel={() => { setShowFoundReportForm(false); setPendingCoords(null); }} initialCoords={pendingCoords} />}
+      {showReportForm && <ReportForm addReport={addReport} onCancel={() => { closeAllModals(); setPendingCoords(null); }} initialCoords={pendingCoords} />}
+      {showFoundReportForm && <FoundReportForm addFoundReport={addFoundReport} onCancel={() => { closeAllModals(); setPendingCoords(null); }} initialCoords={pendingCoords} />}
     </div>
   )
 }
