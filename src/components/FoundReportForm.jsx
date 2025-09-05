@@ -17,6 +17,8 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
   const [species, setSpecies] = useState('dog');
   const [foundAt, setFoundAt] = useState('');
   const [contact, setContact] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
@@ -93,6 +95,23 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
     });
   };
 
+  const onPhotoChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    setPhotoFile(file || null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    if (file) {
+      try {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      } catch {
+        setPreviewUrl(null);
+      }
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { petName, breed, species, foundAt, contact };
@@ -100,6 +119,7 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
       payload.lat = coords.lat;
       payload.lng = coords.lng;
     }
+    if (photoFile) payload.photoFile = photoFile;
     addFoundReport(payload);
   };
 
@@ -111,6 +131,9 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
     setContact('');
     setSuggestions([]);
     setCoords(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPhotoFile(null);
     if (onCancel) onCancel();
   };
 
@@ -154,7 +177,7 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
                 </div>
                 {loadingSuggest && <div className="text-xs text-muted-foreground">Searching…</div>}
                 {suggestions.length > 0 && (
-                  <ul className="absolute top-full mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white shadow z-[2000]">
+                  <ul className="absolute top-full mt-1 max-h-60 w-full overflow-auto rounded-md border bg-card text-card-foreground shadow z-[2000]">
                     {suggestions.map((s) => (
                       <li key={`${s.place_id}`} className="cursor-pointer px-3 py-2 hover:bg-accent" onClick={() => selectSuggestion(s)}>
                         {s.display_name}
@@ -166,6 +189,13 @@ function FoundReportForm({ addFoundReport, onCancel, initialCoords }) {
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="contact">Your Contact Information</Label>
                 <Input id="contact" placeholder="Your contact information" value={contact} onChange={(e) => setContact(e.target.value)} />
+              </div>
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="photo">Pet Photo (optional)</Label>
+                <Input id="photo" type="file" accept="image/*" onChange={onPhotoChange} />
+                {previewUrl && (
+                  <img src={previewUrl} alt="Preview" className="mt-2 max-h-40 rounded border object-cover" />)
+                }
               </div>
             </div>
           </form>

@@ -1,5 +1,28 @@
 import { supabase, isUsingRealCredentials } from './supabase';
 
+// Upload helper for pet photos
+const uploadPetPhoto = async (file, prefix = 'missing') => {
+  if (!file) return null;
+  // In mock mode, just return a blob URL so UI can preview it
+  if (!isUsingRealCredentials()) {
+    try {
+      return URL.createObjectURL(file);
+    } catch {
+      return null;
+    }
+  }
+  const safePrefix = prefix === 'found' ? 'found' : 'missing';
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${safePrefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await supabase
+    .storage
+    .from('pet-photos')
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'image/jpeg' });
+  if (error) throw error;
+  const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
+  return data?.publicUrl || null;
+};
+
 // Mock data for when not using real Supabase credentials
 const mockMissingPets = [
   {
@@ -12,7 +35,8 @@ const mockMissingPets = [
     lat: 40.7128,
     lng: -74.006,
     type: 'missing',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    photo_url: null,
   },
   {
     id: 'm2',
@@ -24,7 +48,8 @@ const mockMissingPets = [
     lat: 40.7135,
     lng: -74.0080,
     type: 'missing',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    photo_url: null,
   }
 ];
 
@@ -39,7 +64,8 @@ const mockFoundPets = [
     lat: 40.7821,
     lng: -73.9665,
     type: 'found',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    photo_url: null,
   }
 ];
 
@@ -92,27 +118,34 @@ export const missingPetsApi = {
         lat: report.lat,
         lng: report.lng,
         type: 'missing',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        photo_url: report.photoFile ? URL.createObjectURL(report.photoFile) : (report.photoUrl || null),
       };
       mockMissingPets.unshift(newPet);
       return newPet;
     }
 
     try {
+      let photoUrl = report.photoUrl || null;
+      if (!photoUrl && report.photoFile) {
+        photoUrl = await uploadPetPhoto(report.photoFile, 'missing');
+      }
+
+      const payload = {
+        pet_name: report.petName,
+        breed: report.breed,
+        species: report.species,
+        last_seen: report.lastSeen,
+        contact: report.contact,
+        lat: report.lat,
+        lng: report.lng,
+        type: 'missing',
+      };
+      if (photoUrl) payload.photo_url = photoUrl;
+
       const { data, error } = await supabase
         .from('missing_pets')
-        .insert([
-          {
-            pet_name: report.petName,
-            breed: report.breed,
-            species: report.species,
-            last_seen: report.lastSeen,
-            contact: report.contact,
-            lat: report.lat,
-            lng: report.lng,
-            type: 'missing'
-          }
-        ])
+        .insert([ payload ])
         .select();
       
       if (error) {
@@ -175,27 +208,34 @@ export const foundPetsApi = {
         lat: report.lat,
         lng: report.lng,
         type: 'found',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        photo_url: report.photoFile ? URL.createObjectURL(report.photoFile) : (report.photoUrl || null),
       };
       mockFoundPets.unshift(newPet);
       return newPet;
     }
 
     try {
+      let photoUrl = report.photoUrl || null;
+      if (!photoUrl && report.photoFile) {
+        photoUrl = await uploadPetPhoto(report.photoFile, 'found');
+      }
+
+      const payload = {
+        pet_name: report.petName,
+        breed: report.breed,
+        species: report.species,
+        found_at: report.foundAt,
+        contact: report.contact,
+        lat: report.lat,
+        lng: report.lng,
+        type: 'found',
+      };
+      if (photoUrl) payload.photo_url = photoUrl;
+
       const { data, error } = await supabase
         .from('found_pets')
-        .insert([
-          {
-            pet_name: report.petName,
-            breed: report.breed,
-            species: report.species,
-            found_at: report.foundAt,
-            contact: report.contact,
-            lat: report.lat,
-            lng: report.lng,
-            type: 'found'
-          }
-        ])
+        .insert([ payload ])
         .select();
       
       if (error) {

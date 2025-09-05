@@ -47,6 +47,7 @@ function App() {
           contact: pet.contact,
           lat: pet.lat,
           lng: pet.lng,
+          photoUrl: pet.photo_url || null,
           type: 'missing'
         })));
         
@@ -61,6 +62,7 @@ function App() {
           contact: pet.contact,
           lat: pet.lat,
           lng: pet.lng,
+          photoUrl: pet.photo_url || null,
           type: 'found'
         })));
 
@@ -97,6 +99,7 @@ function App() {
             contact: pet.contact,
             lat: pet.lat,
             lng: pet.lng,
+            photoUrl: pet.photo_url || null,
             type: 'missing'
           })));
         });
@@ -118,6 +121,7 @@ function App() {
             contact: pet.contact,
             lat: pet.lat,
             lng: pet.lng,
+            photoUrl: pet.photo_url || null,
             type: 'found'
           })));
         });
@@ -159,6 +163,7 @@ function App() {
           contact: savedReport.contact,
           lat: savedReport.lat,
           lng: savedReport.lng,
+          photoUrl: savedReport.photo_url || null,
           type: 'missing'
         };
         setReports(prev => [...prev, formattedReport]);
@@ -195,6 +200,7 @@ function App() {
           contact: savedReport.contact,
           lat: savedReport.lat,
           lng: savedReport.lng,
+          photoUrl: savedReport.photo_url || null,
           type: 'found'
         };
         setFoundReports(prev => [...prev, formattedReport]);
@@ -258,212 +264,87 @@ function App() {
           setShowFoundReportForm(false);
           setAskType(false);
           setPendingCoords(null);
-          closedSomething = true;
         }
-        if (closedSomething) {
-          e.preventDefault();
-          e.stopPropagation();
+        if (!closedSomething && !askType && !showReportForm && !showFoundReportForm) {
+          setSearchOpen(false);
         }
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [searchOpen, askType, showReportForm, showFoundReportForm]);
 
-  const performSearch = async () => {
-    const q = query.trim();
-    if (!q) return;
-    setSearching(true);
-    setHasSearched(true);
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&addressdetails=1&limit=10`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      const data = await res.json();
-      setResults(Array.isArray(data) ? data : []);
-      setSearchOpen(true);
-    } catch (e) {
-      setResults([]);
-      setSearchOpen(true);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const selectResult = (r) => {
-    const lat = parseFloat(r.lat);
-    const lng = parseFloat(r.lon);
-    setFocusPoint({ lat, lng, zoom: 16 });
-    setSearchMarker({ lat, lng, label: r.display_name });
-  };
-
-  const testDatabaseConnection = async () => {
-    console.log('Testing database connection...');
-    setDbTestResult('Testing...');
-    try {
-      const missingPets = await missingPetsApi.getAll();
-      const foundPets = await foundPetsApi.getAll();
-      setDbTestResult(`Success! Found ${missingPets.length} missing pets and ${foundPets.length} found pets`);
-    } catch (error) {
-      console.error('Database test failed:', error);
-      setDbTestResult(`Error: ${error.message}`);
-    }
-  };
-
-  const testDatabaseWriteRead = async () => {
-    setDbWriteTestResult({ status: 'running', message: 'Running write/read test...' });
-    const tag = `db_test_${Date.now()}`;
-    let missingId = null;
-    let foundId = null;
-    try {
-      // Insert into missing_pets
-      const { data: insertMissing, error: insertMissingErr } = await supabase
-        .from('missing_pets')
-        .insert([
-          {
-            pet_name: 'DB_TEST',
-            breed: 'N/A',
-            species: 'Dog',
-            last_seen: 'TEST_LOCATION',
-            contact: tag,
-            lat: 0,
-            lng: 0,
-            type: 'missing'
-          }
-        ])
-        .select();
-      if (insertMissingErr) throw new Error(`missing_pets insert failed: ${insertMissingErr.message}`);
-      missingId = insertMissing?.[0]?.id;
-
-      // Verify missing_pets row
-      const { data: checkMissing, error: checkMissingErr } = await supabase
-        .from('missing_pets')
-        .select('id, contact')
-        .eq('id', missingId)
-        .maybeSingle();
-      if (checkMissingErr) throw new Error(`missing_pets select failed: ${checkMissingErr.message}`);
-      if (!checkMissing || checkMissing.contact !== tag) throw new Error('missing_pets verification failed');
-
-      // Insert into found_pets
-      const { data: insertFound, error: insertFoundErr } = await supabase
-        .from('found_pets')
-        .insert([
-          {
-            pet_name: 'DB_TEST',
-            breed: 'N/A',
-            species: 'Dog',
-            found_at: 'TEST_LOCATION',
-            contact: tag,
-            lat: 0,
-            lng: 0,
-            type: 'found'
-          }
-        ])
-        .select();
-      if (insertFoundErr) throw new Error(`found_pets insert failed: ${insertFoundErr.message}`);
-      foundId = insertFound?.[0]?.id;
-
-      // Verify found_pets row
-      const { data: checkFound, error: checkFoundErr } = await supabase
-        .from('found_pets')
-        .select('id, contact')
-        .eq('id', foundId)
-        .maybeSingle();
-      if (checkFoundErr) throw new Error(`found_pets select failed: ${checkFoundErr.message}`);
-      if (!checkFound || checkFound.contact !== tag) throw new Error('found_pets verification failed');
-
-      setDbWriteTestResult({ status: 'success', message: 'Write/Read test passed. Cleaning up test rows...' });
-
-      // Clean up
-      const { error: delMissingErr } = await supabase.from('missing_pets').delete().eq('id', missingId);
-      if (delMissingErr) throw new Error(`missing_pets delete failed: ${delMissingErr.message}`);
-      const { error: delFoundErr } = await supabase.from('found_pets').delete().eq('id', foundId);
-      if (delFoundErr) throw new Error(`found_pets delete failed: ${delFoundErr.message}`);
-
-      setDbWriteTestResult({ status: 'success', message: 'Write/Read/Delete test completed successfully.' });
-    } catch (e) {
-      setDbWriteTestResult({ status: 'error', message: e?.message || String(e) });
-    }
-  };
-
   return (
-    <div className="app-container">
-      <Map reports={reports} foundReports={foundReports} onMapClick={handleMapClick} searchMarker={searchMarker} focusPoint={focusPoint} />
-
-      {/* Search icon moved into buttons overlay */}
-
-      {/* Collapsible sidebar */}
-      <aside className={`sidebar ${searchOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="font-medium">Search</div>
-          <Button size="sm" variant="ghost" onClick={() => setSearchOpen(false)} aria-label="Close results" title="Close">×</Button>
-        </div>
-        <div className="sidebar-content space-y-2">
-          <div className="flex gap-2">
-            <Input
-              ref={sidebarInputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search places..."
-              onKeyDown={(e) => { if (e.key === 'Enter') performSearch(); }}
-            />
-            <Button onClick={performSearch} disabled={searching} size="icon" aria-label="Search" title="Search">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {results.length === 0 && (
-            <div className="text-sm text-muted-foreground">
-              {searching ? 'Searching…' : (hasSearched ? 'No results' : 'Type a place above to search')}
-            </div>
-          )}
-          {results.map((r) => (
-            <div key={r.place_id} className="search-result-item" onClick={() => selectResult(r)}>
-              <div className="text-sm font-medium truncate">{r.display_name}</div>
-              {r.type && <div className="text-xs text-muted-foreground">{r.type}</div>}
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* Error banner */}
-      {error && (
-        <div className="db-test-result error" style={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 1000 }}>
-          {error.type === 'connection' ? `Connection error: ${error.message}` : `Data integrity issue: ${error.message}`}
-        </div>
-      )}
-      {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner">Loading reports...</div>
-        </div>
-      )}
-      <div className="buttons-overlay">
-        <Button onClick={() => setSearchOpen(true)} className="bg-black text-white hover:bg-black/90" aria-label="Open search" title="Open search">
-          <Search className="mr-2 h-4 w-4" />
-          Search
+    <div>
+      {/* Top bar */}
+      <div className="fixed top-0 left-0 right-0 z-[1000] p-4 flex items-center justify-center gap-3 bg-transparent shadow-none">
+        <Button
+          onClick={() => setSearchOpen(o => !o)}
+          variant="secondary"
+          size="icon"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
         </Button>
-        <Button variant="secondary" onClick={() => openMissingModal(null)}>Report Missing Pet</Button>
-        <Button variant="secondary" onClick={() => openFoundModal(null)}>Report Found Pet</Button>
+        <Button
+          onClick={() => openMissingModal()}
+          variant="default"
+        >
+          Report Missing Pet
+        </Button>
+        <Button
+          onClick={() => openFoundModal()}
+          variant="outline"
+        >
+          Report Found Pet
+        </Button>
       </div>
-      
+
+      {/* Search sidebar */}
+      {searchOpen && (
+        <div className="fixed top-16 left-0 bottom-0 w-96 bg-transparent shadow-none z-[900] p-4 overflow-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <Input ref={sidebarInputRef} placeholder="Search by name, breed, species, or place" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Button onClick={() => {/* implement search later */}}>Go</Button>
+          </div>
+          <div className="text-sm text-muted-foreground">Search results coming soon…</div>
+        </div>
+      )}
+
+      {/* Map */}
+      <Map
+        reports={reports}
+        foundReports={foundReports}
+        onMapClick={handleMapClick}
+        searchMarker={searchMarker}
+        focusPoint={focusPoint}
+      />
+
+      {/* Modals */}
       {askType && (
-        <div className="report-form-container">
-          <div className="w-[320px] rounded-md border bg-background p-4 shadow">
-            <div className="mb-3 text-sm">Create report at clicked location?</div>
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50">
+          <div className="bg-card text-card-foreground p-6 rounded-xl shadow border w-[360px]">
+            <h2 className="text-lg font-semibold mb-4">What would you like to report?</h2>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => { setAskType(false); setPendingCoords(null); }}>Cancel</Button>
+              <Button variant="outline" onClick={() => setAskType(false)}>Cancel</Button>
               <Button onClick={chooseMissing}>Missing</Button>
               <Button variant="secondary" onClick={chooseFound}>Found</Button>
             </div>
           </div>
         </div>
       )}
-
-      {showReportForm && <ReportForm addReport={addReport} onCancel={() => { closeAllModals(); setPendingCoords(null); }} initialCoords={pendingCoords} />}
-      {showFoundReportForm && <FoundReportForm addFoundReport={addFoundReport} onCancel={() => { closeAllModals(); setPendingCoords(null); }} initialCoords={pendingCoords} />}
+      {showReportForm && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50">
+          <ReportForm addReport={addReport} onCancel={() => setShowReportForm(false)} initialCoords={pendingCoords} />
+        </div>
+      )}
+      {showFoundReportForm && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50">
+          <FoundReportForm addFoundReport={addFoundReport} onCancel={() => setShowFoundReportForm(false)} initialCoords={pendingCoords} />
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
 export default App

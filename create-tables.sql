@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS missing_pets (
   contact VARCHAR(255) NOT NULL,
   lat DECIMAL(10, 8),
   lng DECIMAL(11, 8),
+  photo_url TEXT,
   type VARCHAR(50) DEFAULT 'missing',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS found_pets (
   contact VARCHAR(255) NOT NULL,
   lat DECIMAL(10, 8),
   lng DECIMAL(11, 8),
+  photo_url TEXT,
   type VARCHAR(50) DEFAULT 'found',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

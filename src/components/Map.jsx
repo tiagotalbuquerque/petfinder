@@ -69,6 +69,9 @@ function Map({ reports, foundReports, onMapClick, searchMarker, focusPoint }) {
       {reports.map(report => (
         <Marker key={report.id} position={[report.lat, report.lng]} icon={missingIcon}>
           <Popup>
+            {report.photoUrl && (
+              <img src={report.photoUrl} alt={`${report.petName} photo`} style={{ maxWidth: 180, maxHeight: 140, borderRadius: 6, display: 'block', marginBottom: 6 }} />
+            )}
             <strong>{report.petName}</strong> ({report.breed})<br />
             Last seen: {report.lastSeen}<br />
             Contact: {report.contact}
@@ -78,6 +81,9 @@ function Map({ reports, foundReports, onMapClick, searchMarker, focusPoint }) {
       {foundReports && foundReports.map(report => (
         <Marker key={report.id} position={[report.lat, report.lng]} icon={foundIcon}>
           <Popup>
+            {report.photoUrl && (
+              <img src={report.photoUrl} alt={`${report.petName} photo`} style={{ maxWidth: 180, maxHeight: 140, borderRadius: 6, display: 'block', marginBottom: 6 }} />
+            )}
             <strong>Found Pet: {report.petName}</strong> ({report.breed})<br />
             Found at: {report.foundAt}<br />
             Contact: {report.contact}
