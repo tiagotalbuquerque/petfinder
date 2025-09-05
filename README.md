@@ -1,12 +1,58 @@
-# React + Vite
+# PetFinder Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+PetFinder is a web application that helps reunite lost pets with their owners. Users can report missing pets and found pets, view reports on an interactive map, and search for locations.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Report missing pets with details and location
+- Report found pets with details and location
+- Interactive map showing all reports with different markers for missing and found pets
+- Location search functionality
+- Persistent storage using Supabase
+- Real-time updates when new reports are added
 
-## Expanding the ESLint configuration
+## Technologies Used
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- React
+- Vite
+- Leaflet for maps
+- Supabase for database
+- Tailwind CSS with shadcn/ui components
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or later)
+- npm or yarn
+- Supabase account (for database)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Set up Supabase (see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions)
+4. Create a `.env` file in the project root with your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+5. Start the development server:
+   ```
+   npm run dev
+   ```
+
+## Usage
+
+- Click "Report Missing Pet" to create a report for a lost pet
+- Click "Report Found Pet" to create a report for a pet you've found
+- Click on the map to create a report at that specific location
+- Use the search icon to find specific locations
+- Click on markers to view details about reported pets
+
+## License
+
+This project is licensed under the MIT License.
