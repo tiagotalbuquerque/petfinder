@@ -275,7 +275,7 @@ function App() {
   }, [searchOpen, askType, showReportForm, showFoundReportForm]);
 
   return (
-    <div>
+    <div style={{ "--sidebar-offset": searchOpen ? "min(24rem, 80vw)" : "0px" }}>
       {/* Top bar */}
       <div className="fixed top-0 left-0 right-0 z-[1000] p-4 flex items-center justify-center gap-3 bg-transparent shadow-none">
         <Button
@@ -301,15 +301,14 @@ function App() {
       </div>
 
       {/* Search sidebar */}
-      {searchOpen && (
-        <div className="fixed top-16 left-0 bottom-0 w-96 bg-transparent shadow-none z-[900] p-4 overflow-auto">
-          <div className="flex items-center gap-2 mb-4">
-            <Input ref={sidebarInputRef} placeholder="Search by name, breed, species, or place" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <Button onClick={() => {/* implement search later */}}>Go</Button>
-          </div>
-          <div className="text-sm text-muted-foreground">Search results coming soon…</div>
+      <div className={`fixed top-0 left-0 bottom-0 w-96 max-w-[80vw] bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow z-[900] p-4 overflow-auto transform transition-transform duration-300 ease-out ${searchOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}>
+        <h2 className="text-lg font-semibold mb-3">Search for Pet or Location</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Input ref={sidebarInputRef} placeholder="Search by name, breed, species, or place" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Button onClick={() => { /* implement search later */ }}>Go</Button>
         </div>
-      )}
+        <div className="text-sm text-muted-foreground">Search results coming soon…</div>
+      </div>
 
       {/* Map */}
       <Map

@@ -122,3 +122,9 @@
   color: #991b1b;
   border-color: #fca5a5;
 }
+
+/* Smoothly shift Leaflet left-side controls when sidebar opens/closes */
+.leaflet-control-container .leaflet-left {
+  left: var(--sidebar-offset, 0) !important;
+  transition: left 300ms ease;
+}
